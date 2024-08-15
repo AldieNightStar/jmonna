@@ -1,8 +1,8 @@
 package haxidenti.jmonna
 
-import haxidenti.jmonna.service.InMemoryUserStore
+import haxidenti.jmonna.service.*
 import haxidenti.jmonna.service.UserService
-import haxidenti.jmonna.service.UserStore
+import haxidenti.jmonna.util.Request
 import io.javalin.Javalin
 import io.javalin.http.Context
 import io.javalin.http.staticfiles.Location
@@ -12,7 +12,7 @@ import java.io.File
 
 class JMonnaServer(
     val staticFiles: File = File("./web"),
-    val userStore: UserStore = InMemoryUserStore(),
+    val userStore: UserStore = InMemoryUserStore()
 ) {
     private val javalin: Javalin = Javalin.create { config ->
         config.staticFiles.add(staticFiles.also { it.mkdirs() }.canonicalPath, Location.EXTERNAL)
@@ -27,33 +27,33 @@ class JMonnaServer(
         return this
     }
 
-    fun get(path: String, endpoint: Endpoint, userRequired: Boolean = false): JMonnaServer {
-        javalin.get(path) { handleEndpoint(it, endpoint, userRequired) }
+    fun get(path: String, endpoint: Endpoint): JMonnaServer {
+        javalin.get(path) { handleEndpoint(it, endpoint) }
         return this
     }
 
-    fun post(path: String, endpoint: Endpoint, userRequired: Boolean = false): JMonnaServer {
-        javalin.post(path) { handleEndpoint(it, endpoint, userRequired) }
+    fun post(path: String, endpoint: Endpoint): JMonnaServer {
+        javalin.post(path) { handleEndpoint(it, endpoint) }
         return this
     }
 
-    fun put(path: String, endpoint: Endpoint, userRequired: Boolean = false): JMonnaServer {
-        javalin.put(path) { handleEndpoint(it, endpoint, userRequired) }
+    fun put(path: String, endpoint: Endpoint): JMonnaServer {
+        javalin.put(path) { handleEndpoint(it, endpoint) }
         return this
     }
 
-    fun delete(path: String, endpoint: Endpoint, userRequired: Boolean = false): JMonnaServer {
-        javalin.delete(path) { handleEndpoint(it, endpoint, userRequired) }
+    fun delete(path: String, endpoint: Endpoint): JMonnaServer {
+        javalin.delete(path) { handleEndpoint(it, endpoint) }
         return this
     }
 
-    fun head(path: String, endpoint: Endpoint, userRequired: Boolean = false): JMonnaServer {
-        javalin.head(path) { handleEndpoint(it, endpoint, userRequired) }
+    fun head(path: String, endpoint: Endpoint): JMonnaServer {
+        javalin.head(path) { handleEndpoint(it, endpoint) }
         return this
     }
 
-    fun options(path: String, endpoint: Endpoint, userRequired: Boolean = false): JMonnaServer {
-        javalin.options(path) { handleEndpoint(it, endpoint, userRequired) }
+    fun options(path: String, endpoint: Endpoint): JMonnaServer {
+        javalin.options(path) { handleEndpoint(it, endpoint) }
         return this
     }
 
@@ -62,10 +62,17 @@ class JMonnaServer(
         return this
     }
 
-
-    private fun handleEndpoint(c: Context, endpoint: Endpoint, userRequired: Boolean) {
-        val user = if (userRequired) userService.validateUserFromHeader(c) else null
-        endpoint.evaluate(c, user)
+    private fun handleEndpoint(c: Context, endpoint: Endpoint) {
+        val request = Request(
+            context = c,
+            userGetter = {
+                userService.validateUserFromHeader(c)
+            }
+        )
+        val result = endpoint(request)
+        if (result != null) {
+            c.result(gson.toJson(result))
+        }
     }
 
 

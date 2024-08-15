@@ -1,11 +1,8 @@
 package haxidenti.jmonna
 
 import com.google.gson.Gson
-import haxidenti.jmonna.service.User
-import io.javalin.http.Context
+import haxidenti.jmonna.util.Request
 
 val gson = Gson()
 
-interface Endpoint {
-    fun evaluate(c: Context, user: User?)
-}
+typealias Endpoint = (r: Request) -> Any?
