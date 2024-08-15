@@ -2,6 +2,7 @@ package haxidenti.jmonna
 
 import haxidenti.jmonna.service.*
 import haxidenti.jmonna.service.UserService
+import haxidenti.jmonna.service.WsBroadcaster
 import haxidenti.jmonna.util.Request
 import io.javalin.Javalin
 import io.javalin.http.Context
@@ -12,7 +13,7 @@ import java.io.File
 
 class JMonnaServer(
     val staticFiles: File = File("./web"),
-    val userStore: UserStore = InMemoryUserStore()
+    val userStore: UserStore = InMemoryUserStore(),
 ) {
     private val javalin: Javalin = Javalin.create { config ->
         config.staticFiles.add(staticFiles.also { it.mkdirs() }.canonicalPath, Location.EXTERNAL)
@@ -24,6 +25,11 @@ class JMonnaServer(
         userService.serve()
         javalin.start(port)
 
+        return this
+    }
+
+    fun broadcast(path: String): JMonnaServer {
+        javalin.ws(path) { WsBroadcaster().serve(it) }
         return this
     }
 
